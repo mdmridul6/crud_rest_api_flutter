@@ -1,7 +1,13 @@
+import 'dart:convert';
+
+import 'package:crud_app/product.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 
 class UpdateProductScreen extends StatefulWidget {
-  const UpdateProductScreen({super.key});
+  const UpdateProductScreen({super.key, required this.product});
+
+  final Product product;
 
   @override
   State<UpdateProductScreen> createState() => _UpdateProductScreenState();
@@ -16,6 +22,17 @@ class _UpdateProductScreenState extends State<UpdateProductScreen> {
   final TextEditingController _productImageTEController =
       TextEditingController();
   final GlobalKey<FormState> _globalKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _nameTEController.text = widget.product.name;
+    _productPriceTEController.text = widget.product.price.toString();
+    _productQuantityTEController.text = widget.product.quantity.toString();
+    _productImageTEController.text = widget.product.image_url;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +49,6 @@ class _UpdateProductScreenState extends State<UpdateProductScreen> {
             child: Column(
               children: [
                 TextFormField(
-
                   validator: (String? value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Enter Product Name';
@@ -90,12 +106,18 @@ class _UpdateProductScreenState extends State<UpdateProductScreen> {
                 const SizedBox(
                   height: 16,
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_globalKey.currentState!.validate()) {}
-                    return;
-                  },
-                  child: const Text('Update'),
+                Visibility(
+                  visible: _isLoading == false,
+                  replacement: const Center(child: CircularProgressIndicator()),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_globalKey.currentState!.validate()) {
+                        _updateProduct();
+                      }
+                      return;
+                    },
+                    child: const Text('Update'),
+                  ),
                 )
               ],
             ),
@@ -103,5 +125,44 @@ class _UpdateProductScreenState extends State<UpdateProductScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _updateProduct() async {
+    _isLoading = true;
+    setState(() {});
+    String url = 'http://192.168.31.88:8000/api/product/${widget.product.id}';
+    Uri uri = Uri.parse(url);
+    Map<String, dynamic> inputData = {
+      "name": _nameTEController.text,
+      "price": _productPriceTEController.text,
+      "quantity": _productQuantityTEController.text,
+      "image_url": "http://192.168.31.88:8000/images/Dollify.png"
+    };
+    Response response = await put(
+      uri,
+      headers: {'content-type': 'application/json'},
+      body: jsonEncode(inputData),
+    );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text('Product update successfully'),
+        ),
+      );
+      Navigator.pop(context, true);
+
+    } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.red,
+            content: Text('Product update Failed'),
+          ),
+        );
+    }
+
+    _isLoading = false;
+    setState(() {});
   }
 }
